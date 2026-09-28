@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>俚語傘｜雙人互動 Demo</title>
+
+
+    <!-- Font Awesome -->
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+
+    <!-- Matter.js -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        html,
+        body {
+
+            margin: 0;
+
+            width: 100%;
+            height: 100%;
+
+            overflow: hidden;
+
+            background: #f5f5f5;
+
+            font-family:
+                Arial,
+                "Noto Sans TC",
+                sans-serif;
+
+            cursor: none;
+        }
+
+
+        #game {
+
+            position: relative;
+
+            width: 100vw;
+            height: 100vh;
+
+            overflow: hidden;
+        }
+
+
+        canvas {
+            display: none;
+        }
+
+
+        /* =========================
+           上方文字
+        ========================= */
+
+        #info {
+
+            position: absolute;
+
+            z-index: 100;
+
+            top: 25px;
+            left: 50%;
+
+            transform: translateX(-50%);
+
+            text-align: center;
+
+            pointer-events: none;
+        }
+
+
+        #title {
+
+            font-size: 32px;
+
+            font-weight: 800;
+        }
+
+
+        #status {
+
+            margin-top: 8px;
+
+            font-size: 14px;
+
+            color: #666;
+        }
+
+
+        /* =========================
+           雨傘
+        ========================= */
+
+        .umbrella {
+
+            position: absolute;
+
+            z-index: 50;
+
+            width: 150px;
+            height: 150px;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            font-size: 220px;
+
+            line-height: 1;
+
+            pointer-events: none;
+
+            user-select: none;
+
+            opacity: 0;
+
+            transition: opacity .15s;
+        }
+
+
+        .umbrella.show {
+            opacity: 1;
+        }
+
+
+        /* =========================
+           雨
+        ========================= */
+
+        .rain-object {
+
+            position: absolute;
+
+            z-index: 30;
+
+            width: 60px;
+            height: 60px;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            pointer-events: none;
+
+            transform-origin: center;
+        }
+
+
+        .rain-object i {
+
+            font-size: 52px;
+
+            line-height: 1;
+        }
+
+
+        .rain-object svg {
+
+            width: 52px;
+            height: 52px;
+
+            stroke: currentColor;
+        }
+
+
+        /* =========================
+           國家 / 俚語提示卡
+        ========================= */
+
+        #notice {
+
+            position: absolute;
+
+            inset: 0;
+
+            z-index: 200;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            pointer-events: none;
+
+            opacity: 0;
+
+            transition: opacity .3s;
+        }
+
+
+        #notice.show {
+            opacity: 1;
+        }
+
+
+        #notice-box {
+
+            min-width: 380px;
+
+            background: white;
+
+            border: 3px solid black;
+
+            padding: 30px 50px;
+
+            text-align: center;
+
+            box-shadow: 8px 8px 0 #000;
+
+            transform: translateY(10px);
+
+            transition:
+                transform .3s ease;
+        }
+
+
+        #notice.show #notice-box {
+
+            transform: translateY(0);
+        }
+
+
+        #notice-country {
+
+            font-size: 42px;
+
+            font-weight: 900;
+        }
+
+
+        #notice-idiom {
+
+            margin-top: 15px;
+
+            font-size: 22px;
+
+            font-weight: 500;
+
+            line-height: 1.5;
+        }
+
+
+        /* =========================
+           國家小提示
+        ========================= */
+
+        #notice-type {
+
+            margin-top: 10px;
+
+            font-size: 15px;
+
+            color: #666;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <div id="game">
+
+
+        <!-- =====================
+             上方資訊
+        ===================== -->
+
+        <div id="info">
+
+            <div id="title">
+                俚語傘
+            </div>
+
+            <div id="status">
+                等待玩家...
+            </div>
+
+        </div>
+
+
+        <!-- =====================
+             紅色玩家
+             英國
+        ===================== -->
+
+        <div id="redUmbrella" class="umbrella">
+            ☂
+        </div>
+
+
+        <!-- =====================
+             藍色玩家
+             希臘
+        ===================== -->
+
+        <div id="blueUmbrella" class="umbrella">
+            ☂
+        </div>
+
+
+        <!-- =====================
+             國家 / 俚語提示
+        ===================== -->
+
+        <div id="notice">
+
+            <div id="notice-box">
+
+                <div id="notice-country">
+                    英國
+                </div>
+
+                <div id="notice-idiom">
+                    It's raining cats and dogs!
+                </div>
+
+                <div id="notice-type">
+                    貓狗雨
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <script>
+
+
+        // ======================================
+        // Matter.js
+        // ======================================
+
+        const {
+            Engine,
+            Render,
+            Runner,
+            Bodies,
+            Body,
+            Composite,
+            Events
+        } = Matter;
+
+
+        const engine = Engine.create();
+
+
+        const world = engine.world;
+
+
+        engine.gravity.y = 1.1;
+
+
+        const render = Render.create({
+
+            element:
+                document.getElementById("game"),
+
+            engine,
+
+            options: {
+
+                width: innerWidth,
+
+                height: innerHeight,
+
+                wireframes: false,
+
+                background: "#f5f5f5",
+
+                pixelRatio:
+                    devicePixelRatio || 1
+            }
+
+        });
+
+
+        Render.run(render);
+
+
+        Runner.run(
+            Runner.create(),
+            engine
+        );
+
+
+        // ======================================
+        // DOM
+        // ======================================
+
+        const redUmbrella =
+            document.getElementById(
+                "redUmbrella"
+            );
+
+
+        const blueUmbrella =
+            document.getElementById(
+                "blueUmbrella"
+            );
+
+
+        const statusText =
+            document.getElementById(
+                "status"
+            );
+
+
+        const notice =
+            document.getElementById(
+                "notice"
+            );
+
+
+        const noticeCountry =
+            document.getElementById(
+                "notice-country"
+            );
+
+
+        const noticeIdiom =
+            document.getElementById(
+                "notice-idiom"
+            );
+
+
+        const noticeType =
+            document.getElementById(
+                "notice-type"
+            );
+
+
+        // ======================================
+        // 位置設定
+        // ======================================
+
+        const CAMERA_WIDTH = 640;
+
+
+        const SIZE_MIN = 50;
+
+
+        const SIZE_MAX = 100;
+
+
+        const UMBRELLA_TOP =
+            innerHeight * 0.20;
+
+
+        const UMBRELLA_BOTTOM =
+            innerHeight * 0.75;
+
+
+        // ======================================
+        // 工具
+        // ======================================
+
+        function clamp(
+            value,
+            min,
+            max
+        ) {
+
+            return Math.max(
+                min,
+                Math.min(max, value)
+            );
+
+        }
+
+
+        function mapValue(
+            value,
+            inMin,
+            inMax,
+            outMin,
+            outMax
+        ) {
+
+            return (
+                outMin +
+                (value - inMin) /
+                (inMax - inMin) *
+                (outMax - outMin)
+            );
+
+        }
+
+
+        // ======================================
+        // 玩家位置
+        // 初始先藏在畫面外
+        // 避免左上角閃爍
+        // ======================================
+
+        let redX = -9999;
+        let redY = -9999;
+
+
+        let blueX = -9999;
+        let blueY = -9999;
+
+
+        // ======================================
+        // 玩家是否存在
+        // ======================================
+
+        let redVisible = false;
+
+
+        let blueVisible = false;
+
+
+        // ======================================
+        // 國家卡片控制
+        // ======================================
+
+        let redPreviousVisible = false;
+
+
+        let bluePreviousVisible = false;
+
+
+        // ======================================
+        // 字卡冷卻時間
+        // ======================================
+        //
+        // 同一個國家在這段時間內
+        // 不會再次跳出字卡
+        //
+        // 5000 = 5 秒
+        // 3000 = 3 秒
+        // 10000 = 10 秒
+        //
+        // ======================================
+
+        const NOTICE_COOLDOWN = 8000;
+
+
+        // ======================================
+        // 上一次顯示字卡的時間
+        // 分紅色 / 藍色各自計算
+        // ======================================
+
+        let redLastNoticeTime = 0;
+
+
+        let blueLastNoticeTime = 0;
+
+
+        // ======================================
+        // 字卡計時器
+        // ======================================
+
+        let noticeTimer = null;
+
+
+        // ======================================
+        // 顯示國家字卡
+        // ======================================
+
+        function showCountryNotice(
+            country,
+            idiom,
+            type
+        ) {
+
+            noticeCountry.textContent =
+                country;
+
+
+            noticeIdiom.textContent =
+                idiom;
+
+
+            noticeType.textContent =
+                type;
+
+
+            notice.classList.add(
+                "show"
+            );
+
+
+            if (noticeTimer) {
+
+                clearTimeout(
+                    noticeTimer
+                );
+
+            }
+
+
+            noticeTimer =
+                setTimeout(
+                    () => {
+
+                        notice.classList.remove(
+                            "show"
+                        );
+
+                    },
+                    2500
+                );
+
+        }
+
+
+        // ======================================
+        // WebSocket
+        // ======================================
+
+        const socket =
+            new WebSocket(
+                "ws://127.0.0.1:8765"
+            );
+
+
+        socket.onopen = () => {
+
+            console.log(
+                "已連線到 Python"
+            );
+
+        };
+
+
+        socket.onclose = () => {
+
+            console.log(
+                "Python 連線中斷"
+            );
+
+        };
+
+
+        socket.onerror = error => {
+
+            console.error(
+                "WebSocket 錯誤",
+                error
+            );
+
+        };
+
+
+        // ======================================
+        // 接收 Python
+        // ======================================
+
+        socket.onmessage = event => {
+
+            const data =
+                JSON.parse(event.data);
+
+
+            // ==========================
+            // 紅色玩家
+            // ==========================
+
+            redVisible =
+                data.red.visible;
+
+
+            if (redVisible) {
+
+                let x =
+                    Number(data.red.x);
+
+
+                let size =
+                    Number(data.red.size);
+
+
+                x = clamp(
+                    x,
+                    0,
+                    CAMERA_WIDTH
+                );
+
+
+                size = clamp(
+                    size,
+                    SIZE_MIN,
+                    SIZE_MAX
+                );
+
+
+                redX = mapValue(
+                    x,
+                    0,
+                    CAMERA_WIDTH,
+                    0,
+                    innerWidth
+                );
+
+
+                redY = mapValue(
+                    size,
+                    SIZE_MIN,
+                    SIZE_MAX,
+                    UMBRELLA_BOTTOM,
+                    UMBRELLA_TOP
+                );
+
+            }
+
+
+            // ==========================
+            // 藍色玩家
+            // ==========================
+
+            blueVisible =
+                data.blue.visible;
+
+
+            if (blueVisible) {
+
+                let x =
+                    Number(data.blue.x);
+
+
+                let size =
+                    Number(data.blue.size);
+
+
+                x = clamp(
+                    x,
+                    0,
+                    CAMERA_WIDTH
+                );
+
+
+                size = clamp(
+                    size,
+                    SIZE_MIN,
+                    SIZE_MAX
+                );
+
+
+                blueX = mapValue(
+                    x,
+                    0,
+                    CAMERA_WIDTH,
+                    0,
+                    innerWidth
+                );
+
+
+                blueY = mapValue(
+                    size,
+                    SIZE_MIN,
+                    SIZE_MAX,
+                    UMBRELLA_BOTTOM,
+                    UMBRELLA_TOP
+                );
+
+            }
+
+
+            // ======================================
+            // 國家卡片
+            //
+            // 只有「剛出現」才判斷
+            //
+            // 而且加入冷卻時間，
+            // 避免偵測閃爍造成字卡一直重複
+            // ======================================
+
+
+            // ==========================
+            // 英國
+            // ==========================
+
+            if (
+                redVisible &&
+                !redPreviousVisible
+            ) {
+
+                const now =
+                    Date.now();
+
+
+                // 距離上一次英國字卡
+                // 已經超過冷卻時間
+                if (
+                    now -
+                    redLastNoticeTime
+                    >=
+                    NOTICE_COOLDOWN
+                ) {
+
+                    showCountryNotice(
+                        "英國",
+                        "It's raining cats and dogs!",
+                        "貓狗雨"
+                    );
+
+
+                    redLastNoticeTime =
+                        now;
+
+                }
+
+            }
+
+
+            // ==========================
+            // 希臘
+            // ==========================
+
+            if (
+                blueVisible &&
+                !bluePreviousVisible
+            ) {
+
+                const now =
+                    Date.now();
+
+
+                // 距離上一次希臘字卡
+                // 已經超過冷卻時間
+                if (
+                    now -
+                    blueLastNoticeTime
+                    >=
+                    NOTICE_COOLDOWN
+                ) {
+
+                    showCountryNotice(
+                        "希臘",
+                        "It's raining chairs!",
+                        "椅子雨"
+                    );
+
+
+                    blueLastNoticeTime =
+                        now;
+
+                }
+
+            }
+
+
+            // ======================================
+            // 記錄這一幀的狀態
+            // ======================================
+
+            redPreviousVisible =
+                redVisible;
+
+
+            bluePreviousVisible =
+                blueVisible;
+
+
+            // ==========================
+            // 顯示 / 隱藏
+            // ==========================
+
+            redUmbrella.classList.toggle(
+                "show",
+                redVisible
+            );
+
+
+            blueUmbrella.classList.toggle(
+                "show",
+                blueVisible
+            );
+
+
+            // ==========================
+            // 狀態文字
+            // ==========================
+
+            if (
+                redVisible &&
+                blueVisible
+            ) {
+
+                statusText.textContent =
+                    "英國＋希臘｜雙人遊玩";
+
+            }
+
+
+            else if (redVisible) {
+
+                statusText.textContent =
+                    "英國｜貓狗雨";
+
+            }
+
+
+            else if (blueVisible) {
+
+                statusText.textContent =
+                    "希臘｜椅子雨";
+
+            }
+
+
+            else {
+
+                statusText.textContent =
+                    "等待玩家...";
+
+            }
+
+
+            // ==========================
+            // Matter.js 雨傘
+            // ==========================
+
+            if (redUmbrellaBody) {
+
+                if (redVisible) {
+
+                    Body.setPosition(
+                        redUmbrellaBody,
+                        {
+                            x: redX,
+                            y: redY
+                        }
+                    );
+
+                }
+
+                else {
+
+                    Body.setPosition(
+                        redUmbrellaBody,
+                        {
+                            x: -9999,
+                            y: -9999
+                        }
+                    );
+
+                }
+
+
+                Body.setVelocity(
+                    redUmbrellaBody,
+                    {
+                        x: 0,
+                        y: 0
+                    }
+                );
+
+            }
+
+
+            if (blueUmbrellaBody) {
+
+                if (blueVisible) {
+
+                    Body.setPosition(
+                        blueUmbrellaBody,
+                        {
+                            x: blueX,
+                            y: blueY
+                        }
+                    );
+
+                }
+
+                else {
+
+                    Body.setPosition(
+                        blueUmbrellaBody,
+                        {
+                            x: -9999,
+                            y: -9999
+                        }
+                    );
+
+                }
+
+
+                Body.setVelocity(
+                    blueUmbrellaBody,
+                    {
+                        x: 0,
+                        y: 0
+                    }
+                );
+
+            }
+
+        };
+
+
+        // ======================================
+        // 建立雨傘碰撞體
+        // ======================================
+
+        function createUmbrellaBody(
+            x,
+            y,
+            label
+        ) {
+
+            const left =
+                Bodies.rectangle(
+                    x - 40,
+                    y - 12,
+                    80,
+                    18,
+                    {
+                        label,
+                        restitution: 1,
+                        friction: 0.05,
+                        render: {
+                            visible: false
+                        }
+                    }
+                );
+
+
+            const center =
+                Bodies.rectangle(
+                    x,
+                    y - 25,
+                    90,
+                    18,
+                    {
+                        label,
+                        restitution: 1,
+                        friction: 0.05,
+                        render: {
+                            visible: false
+                        }
+                    }
+                );
+
+
+            const right =
+                Bodies.rectangle(
+                    x + 40,
+                    y - 12,
+                    80,
+                    18,
+                    {
+                        label,
+                        restitution: 1,
+                        friction: 0.05,
+                        render: {
+                            visible: false
+                        }
+                    }
+                );
+
+
+            const handle =
+                Bodies.rectangle(
+                    x,
+                    y + 30,
+                    10,
+                    70,
+                    {
+                        label,
+                        restitution: 0.8,
+                        friction: 0.1,
+                        render: {
+                            visible: false
+                        }
+                    }
+                );
+
+
+            const body =
+                Body.create({
+
+                    parts: [
+                        left,
+                        center,
+                        right,
+                        handle
+                    ],
+
+                    isStatic: true,
+
+                    label,
+
+                    render: {
+                        visible: false
+                    }
+
+                });
+
+
+            Composite.add(
+                world,
+                body
+            );
+
+
+            return body;
+
+        }
+
+
+        let redUmbrellaBody =
+            createUmbrellaBody(
+                -9999,
+                -9999,
+                "redUmbrella"
+            );
+
+
+        let blueUmbrellaBody =
+            createUmbrellaBody(
+                -9999,
+                -9999,
+                "blueUmbrella"
+            );
+
+
+        // ======================================
+        // 地面
+        // ======================================
+
+        let ground;
+
+
+        function createGround() {
+
+            ground =
+                Bodies.rectangle(
+                    innerWidth / 2,
+                    innerHeight + 30,
+                    innerWidth,
+                    60,
+                    {
+                        isStatic: true,
+                        label: "ground",
+                        restitution: 0.05,
+                        friction: 0.8,
+                        render: {
+                            visible: false
+                        }
+                    }
+                );
+
+
+            Composite.add(
+                world,
+                ground
+            );
+
+        }
+
+
+        createGround();
+
+
+        // ======================================
+        // 左右牆
+        // ======================================
+
+        let leftWall;
+
+
+        let rightWall;
+
+
+        function createSideWalls() {
+
+            leftWall =
+                Bodies.rectangle(
+                    -25,
+                    innerHeight / 2,
+                    50,
+                    innerHeight,
+                    {
+                        isStatic: true,
+                        label: "sideWall",
+                        restitution: 0.8,
+                        friction: 0.2,
+                        render: {
+                            visible: false
+                        }
+                    }
+                );
+
+
+            rightWall =
+                Bodies.rectangle(
+                    innerWidth + 25,
+                    innerHeight / 2,
+                    50,
+                    innerHeight,
+                    {
+                        isStatic: true,
+                        label: "sideWall",
+                        restitution: 0.8,
+                        friction: 0.2,
+                        render: {
+                            visible: false
+                        }
+                    }
+                );
+
+
+            Composite.add(
+                world,
+                [
+                    leftWall,
+                    rightWall
+                ]
+            );
+
+        }
+
+
+        createSideWalls();
+
+
+        // ======================================
+        // 雨的圖示
+        // ======================================
+
+        const iconHTML = {
+
+            cat:
+                '<i class="fa-solid fa-cat"></i>',
+
+            dog:
+                '<i class="fa-solid fa-dog"></i>',
+
+            chair:
+                '<i class="fa-solid fa-chair"></i>'
+
+        };
+
+
+        // ======================================
+        // 雨物件
+        // ======================================
+
+        const rainObjects =
+            new Map();
+
+
+        // ======================================
+        // 建立一個雨
+        // ======================================
+
+        function spawnRain(type) {
+
+            const x =
+                60 +
+                Math.random() *
+                (innerWidth - 120);
+
+
+            const y = -80;
+
+
+            let radius = 27;
+
+
+            let iconSize = 52;
+
+
+            if (type === "chair") {
+
+                radius = 31;
+
+                iconSize = 58;
+
+            }
+
+
+            const body =
+                Bodies.circle(
+                    x,
+                    y,
+                    radius,
+                    {
+
+                        label: "rain",
+
+                        restitution: 0.25,
+
+                        friction: 0.65,
+
+                        frictionAir: 0.003,
+
+                        density: 0.0015,
+
+                        render: {
+                            visible: false
+                        }
+
+                    }
+                );
+
+
+            body.rainType =
+                type;
+
+
+            body.iconSize =
+                iconSize;
+
+
+            body.hitUmbrella =
+                false;
+
+
+            Composite.add(
+                world,
+                body
+            );
+
+
+            const element =
+                document.createElement(
+                    "div"
+                );
+
+
+            element.className =
+                "rain-object";
+
+
+            element.style.width =
+                iconSize + "px";
+
+
+            element.style.height =
+                iconSize + "px";
+
+
+            element.innerHTML =
+                iconHTML[type];
+
+
+            document
+                .getElementById("game")
+                .appendChild(element);
+
+
+            body.element =
+                element;
+
+
+            rainObjects.set(
+                body.id,
+                body
+            );
+
+        }
+
+
+        // ======================================
+        // 移除雨
+        // ======================================
+
+        function removeRain(body) {
+
+            Composite.remove(
+                world,
+                body
+            );
+
+
+            rainObjects.delete(
+                body.id
+            );
+
+
+            if (body.element) {
+
+                body.element.remove();
+
+            }
+
+        }
+
+
+        // ======================================
+        // 碰撞
+        // ======================================
+
+        Events.on(
+            engine,
+            "collisionStart",
+            event => {
+
+                event.pairs.forEach(
+                    pair => {
+
+                        let rain = null;
+
+                        let umbrella = null;
+
+
+                        if (
+                            pair.bodyA.label ===
+                            "rain"
+                        ) {
+
+                            rain =
+                                pair.bodyA;
+
+                            umbrella =
+                                pair.bodyB;
+
+                        }
+
+
+                        else if (
+                            pair.bodyB.label ===
+                            "rain"
+                        ) {
+
+                            rain =
+                                pair.bodyB;
+
+                            umbrella =
+                                pair.bodyA;
+
+                        }
+
+
+                        if (!rain) {
+                            return;
+                        }
+
+
+                        if (
+                            umbrella.label !==
+                            "redUmbrella" &&
+                            umbrella.label !==
+                            "blueUmbrella"
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        if (
+                            rain.hitUmbrella
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        rain.hitUmbrella =
+                            true;
+
+
+                        const umbrellaX =
+                            umbrella.position.x;
+
+
+                        const direction =
+                            rain.position.x <
+                            umbrellaX
+                                ? -1
+                                : 1;
+
+
+                        Body.setVelocity(
+                            rain,
+                            {
+
+                                x:
+                                    direction *
+                                    (
+                                        14 +
+                                        Math.random() *
+                                        7
+                                    ),
+
+                                y:
+                                    -(
+                                        5 +
+                                        Math.random() *
+                                        3
+                                    )
+
+                            }
+                        );
+
+
+                        Body.setAngularVelocity(
+                            rain,
+                            direction *
+                            (
+                                0.2 +
+                                Math.random() *
+                                0.25
+                            )
+                        );
+
+
+                        rain.frictionAir =
+                            0.001;
+
+
+                        setTimeout(
+                            () => {
+
+                                if (
+                                    rainObjects.has(
+                                        rain.id
+                                    )
+                                ) {
+
+                                    removeRain(
+                                        rain
+                                    );
+
+                                }
+
+                            },
+                            900
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+
+        // ======================================
+        // 畫面更新
+        // ======================================
+
+        Events.on(
+            render,
+            "afterRender",
+            () => {
+
+                // ==========================
+                // 紅傘
+                // ==========================
+
+                if (redVisible) {
+
+                    redUmbrella.style.left =
+                        redX + "px";
+
+
+                    redUmbrella.style.top =
+                        redY + "px";
+
+
+                    redUmbrella.style.transform =
+                        "translate(-50%, -50%) rotate(-30deg)";
+
+                }
+
+
+                // ==========================
+                // 藍傘
+                // ==========================
+
+                if (blueVisible) {
+
+                    blueUmbrella.style.left =
+                        blueX + "px";
+
+
+                    blueUmbrella.style.top =
+                        blueY + "px";
+
+
+                    blueUmbrella.style.transform =
+                        "translate(-50%, -50%) rotate(-30deg)";
+
+                }
+
+
+                // ==========================
+                // 雨
+                // ==========================
+
+                rainObjects.forEach(
+                    body => {
+
+                        if (!body.element) {
+                            return;
+                        }
+
+
+                        const size =
+                            body.iconSize;
+
+
+                        body.element.style.transform =
+                            `translate(
+                                ${body.position.x - size / 2}px,
+                                ${body.position.y - size / 2}px
+                            )
+                            rotate(${body.angle}rad)`;
+
+                    }
+                );
+
+            }
+        );
+
+
+        // ======================================
+        // 根據玩家決定下什麼雨
+        // ======================================
+
+        let spawnTimer = 0;
+
+
+        let nextSpawnTime = 500;
+
+
+        Events.on(
+            engine,
+            "beforeUpdate",
+            event => {
+
+                // 如果完全沒有人
+                // 直接跳過不生成雨
+
+                if (
+                    !redVisible &&
+                    !blueVisible
+                ) {
+
+                    return;
+
+                }
+
+
+                spawnTimer +=
+                    event.delta;
+
+
+                if (
+                    spawnTimer <
+                    nextSpawnTime
+                ) {
+
+                    return;
+
+                }
+
+
+                spawnTimer = 0;
+
+
+                nextSpawnTime =
+                    350 +
+                    Math.random() *
+                    450;
+
+
+                // ==========================
+                // 紅色玩家
+                // 英國
+                // ==========================
+
+                if (redVisible) {
+
+                    const types = [
+                        "cat",
+                        "dog"
+                    ];
+
+
+                    const type =
+                        types[
+                            Math.floor(
+                                Math.random() *
+                                types.length
+                            )
+                        ];
+
+
+                    spawnRain(type);
+
+                }
+
+
+                // ==========================
+                // 藍色玩家
+                // 希臘
+                // ==========================
+
+                if (blueVisible) {
+
+                    spawnRain(
+                        "chair"
+                    );
+
+                }
+
+            }
+        );
+
+
+        // ======================================
+        // 清理雨
+        // ======================================
+
+        function cleanup() {
+
+            rainObjects.forEach(
+                body => {
+
+                    if (
+
+                        body.position.x <
+                        -150 ||
+
+                        body.position.x >
+                        innerWidth + 150 ||
+
+                        body.position.y >
+                        innerHeight + 150
+
+                    ) {
+
+                        removeRain(
+                            body
+                        );
+
+                    }
+
+                }
+            );
+
+
+            requestAnimationFrame(
+                cleanup
+            );
+
+        }
+
+
+        cleanup();
+
+
+        // ======================================
+        // Resize
+        // ======================================
+
+        window.addEventListener(
+            "resize",
+            () => {
+
+                render.options.width =
+                    innerWidth;
+
+
+                render.options.height =
+                    innerHeight;
+
+
+                // 地面
+
+                Composite.remove(
+                    world,
+                    ground
+                );
+
+
+                createGround();
+
+
+                // 左右牆
+
+                Composite.remove(
+                    world,
+                    [
+                        leftWall,
+                        rightWall
+                    ]
+                );
+
+
+                createSideWalls();
+
+            }
+        );
+
+
+    </script>
+
+
+</body>
+
+</html>
