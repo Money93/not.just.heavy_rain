@@ -440,15 +440,15 @@ while True:
     lower_red1 = np.array([
 
         0,
-        150,
-        80
+        80,
+        50
 
     ])
 
 
     upper_red1 = np.array([
 
-        10,
+        12,
         255,
         255
 
@@ -457,9 +457,9 @@ while True:
 
     lower_red2 = np.array([
 
-        170,
-        150,
-        80
+        168,
+        80,
+        50
 
     ])
 
@@ -500,7 +500,7 @@ while True:
         red_mask1 |
         red_mask2
 
-    )
+    ) 
 
 
     # =========================

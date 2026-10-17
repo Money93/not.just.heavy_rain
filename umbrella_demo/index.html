@@ -12,8 +12,7 @@
 
     <!-- Font Awesome -->
 
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
 
     <!-- Matter.js -->
@@ -22,7 +21,6 @@
 
 
     <style>
-
         * {
             box-sizing: border-box;
         }
@@ -59,15 +57,61 @@
             overflow: hidden;
         }
 
+        /* 背景普通雨滴 */
+
+        #background-rain {
+            position: absolute;
+            inset: 0;
+            z-index: 40;
+            overflow: hidden;
+            pointer-events: none;
+
+            background: #142B49;
+            opacity: 1;
+            transition: opacity 1.5s ease;
+        }
+
+        /* 玩家出現時，背景雨滴淡出 */
+        #background-rain.hide {
+            opacity: 0;
+        }
+
+        .background-raindrop {
+            position: absolute;
+            top: -100px;
+
+            width: 2px;
+            height: 30px;
+
+            background: linear-gradient(to bottom,
+                    rgba(255, 255, 255, 0),
+                    rgba(255, 255, 255, 0.85));
+
+            border-radius: 50%;
+
+            animation: backgroundRainFall linear infinite;
+
+            pointer-events: none;
+        }
+
+        @keyframes backgroundRainFall {
+
+            from {
+                transform: translate3d(0, -100px, 0) rotate(8deg);
+            }
+
+            to {
+                transform: translate3d(-35px, 120vh, 0) rotate(8deg);
+            }
+
+        }
 
         canvas {
             display: none;
         }
 
 
-        /* =========================
-           上方文字
-        ========================= */
+        /* 上方文字 */
 
         #info {
 
@@ -104,9 +148,7 @@
         }
 
 
-        /* =========================
-           雨傘
-        ========================= */
+        /* 雨傘 */
 
         .umbrella {
 
@@ -141,9 +183,7 @@
         }
 
 
-        /* =========================
-           雨
-        ========================= */
+        /* 雨 */
 
         .rain-object {
 
@@ -162,6 +202,7 @@
             pointer-events: none;
 
             transform-origin: center;
+            visibility: hidden;
         }
 
 
@@ -182,9 +223,7 @@
         }
 
 
-        /* =========================
-           國家 / 俚語提示卡
-        ========================= */
+        /* 國家 / 俚語提示卡 */
 
         #notice {
 
@@ -259,9 +298,7 @@
         }
 
 
-        /* =========================
-           國家小提示
-        ========================= */
+        /* 國家小提示 */
 
         #notice-type {
 
@@ -272,58 +309,243 @@
             color: #666;
         }
 
-    </style>
 
+        /* 遊戲結算畫面 */
+
+        #result-screen {
+            position: absolute;
+            inset: 0;
+            z-index: 300;
+
+            display: none;
+            align-items: center;
+            justify-content: center;
+
+            background: rgba(245, 245, 245, 0.94);
+            padding: 20px;
+        }
+
+        #result-screen.show {
+            display: flex;
+        }
+
+        #result-box {
+            width: 100%;
+            max-width: 560px;
+
+            padding: 35px;
+            background: white;
+
+            border: 3px solid #222;
+            box-shadow: 8px 8px 0 #222;
+
+            text-align: center;
+        }
+
+        #result-title {
+            font-size: 36px;
+            font-weight: 900;
+            margin-bottom: 12px;
+        }
+
+        #result-message {
+            font-size: 18px;
+            line-height: 1.8;
+            margin-bottom: 24px;
+        }
+
+        #result-counts {
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+
+        .result-item {
+            min-width: 100px;
+            padding: 15px 10px;
+            border: 2px solid #222;
+        }
+
+        .result-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .result-number {
+            font-size: 26px;
+            font-weight: 900;
+        }
+
+        /*  開場主題文字 */
+        #intro-text {
+            position: absolute;
+
+            opacity: 1;
+            transition: opacity 1.5s ease;
+
+            /* 畫面水平、垂直置中 */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation:
+                introFloat 4s ease-in-out infinite,
+                textGlow 5s ease-in-out infinite;
+
+            /* 文字外觀 */
+            width: 90%;
+            text-align: center;
+            font-family: "ChenYuluoyan", sans-serif;
+            font-size: clamp(48px, 6vw, 90px);
+            font-weight: normal;
+            letter-spacing: 0.12em;
+            line-height: 1.6;
+
+            /* 文字顏色與陰影 */
+            color: #ffffff;
+            text-shadow:
+                0 0 5px rgba(255, 255, 255, 0.9),
+                0 0 15px rgba(200, 225, 255, 0.65),
+                0 0 30px rgba(130, 190, 255, 0.35);
+
+            /* 確保文字在雨滴上方 */
+            z-index: 45;
+
+            /* 不阻擋攝影機或遊戲互動 */
+            pointer-events: none;
+        }
+
+        #intro-text.hide {
+            opacity: 0;
+        }
+
+        /* 開場文字上下漂浮動畫 */
+        @keyframes introFloat {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) translateY(0px);
+            }
+
+            50% {
+                transform: translate(-50%, -50%) translateY(-18px);
+            }
+
+        }
+
+        /* === 遊戲倒數計時器 === */
+
+        #game-timer {
+            position: absolute;
+            top: 30px;
+            right: 35px;
+            z-index: 150;
+
+            padding: 12px 24px;
+            background: #ffffff;
+            border: 3px solid #222222;
+
+            text-align: center;
+            pointer-events: none;
+
+            display: none;
+        }
+
+        /* 遊戲開始後顯示 */
+        #game-timer.show {
+            display: block;
+        }
+
+        /* 剩餘時間文字 */
+        #timer-label {
+            font-size: 14px;
+            color: #666666;
+            margin-bottom: 5px;
+        }
+
+        /* 倒數數字 */
+        #timer-number {
+            font-size: 36px;
+            font-weight: 800;
+            color: #222222;
+            font-variant-numeric: tabular-nums;
+        }
+
+        @font-face {
+            font-family: "ChenYuluoyan";
+            src: url("./ChenYuluoyan-Thin-Monospaced.ttf") format("truetype");
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        /* 開場文字呼吸發光 */
+        @keyframes textGlow {
+
+            0%,
+            100% {
+                text-shadow:
+                    0 0 5px rgba(255, 255, 255, 0.7),
+                    0 0 12px rgba(200, 225, 255, 0.4),
+                    0 0 25px rgba(130, 190, 255, 0.2);
+            }
+
+            50% {
+                text-shadow:
+                    0 0 8px rgba(255, 255, 255, 1),
+                    0 0 20px rgba(200, 225, 255, 0.8),
+                    0 0 40px rgba(130, 190, 255, 0.5);
+            }
+
+        }
+
+        /* 結算 QR Code */
+        #result-qr-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        #result-qrcode {
+            background: white;
+            padding: 12px;
+        }
+
+        #result-qr-area p {
+            font-size: 18px;
+            color: #333;
+            margin: 0;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
 
 <body>
 
-
     <div id="game">
 
+        <!-- 背景普通雨滴 -->
+        <div id="background-rain"></div>
 
-        <!-- =====================
-             上方資訊
-        ===================== -->
-
-        <div id="info">
-
-            <div id="title">
-                俚語傘
-            </div>
-
-            <div id="status">
-                等待玩家...
-            </div>
-
+        <!-- 開場主題文字 -->
+        <div id="intro-text">
+            同一場雨，世界會怎麼說？
         </div>
 
-
-        <!-- =====================
-             紅色玩家
-             英國
-        ===================== -->
-
+        <!-- 紅色玩家 英國 -->
         <div id="redUmbrella" class="umbrella">
             ☂
         </div>
 
-
-        <!-- =====================
-             藍色玩家
-             希臘
-        ===================== -->
-
+        <!-- 藍色玩家 希臘 -->
         <div id="blueUmbrella" class="umbrella">
             ☂
         </div>
 
-
-        <!-- =====================
-             國家 / 俚語提示
-        ===================== -->
-
+        <!-- 國家 / 俚語提示 -->
         <div id="notice">
 
             <div id="notice-box">
@@ -344,17 +566,63 @@
 
         </div>
 
+        <!-- 遊戲結算畫面 -->
+        <div id="result-screen">
+
+            <div id="result-box">
+
+                <div id="result-title">
+                    你被淹沒了！
+                </div>
+
+                <div id="result-message">
+                    這場雨真是太驚人了！
+                </div>
+
+                <div id="result-counts">
+
+                    <div class="result-item">
+                        <div class="result-icon">🐱</div>
+                        <div>貓咪</div>
+                        <div class="result-number" id="cat-count">0</div>
+                    </div>
+
+                    <div class="result-item">
+                        <div class="result-icon">🐶</div>
+                        <div>狗狗</div>
+                        <div class="result-number" id="dog-count">0</div>
+                    </div>
+
+                    <div class="result-item">
+                        <div class="result-icon">🪑</div>
+                        <div>椅子</div>
+                        <div class="result-number" id="chair-count">0</div>
+                    </div>
+
+                </div>
+
+                <!-- 結算 QR Code -->
+                <div id="result-qr-area">
+                    <div id="result-qrcode"></div>
+                    <p>掃描 QR Code，帶走你的俚雨！</p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- 遊戲倒數計時器 -->
+        <div id="game-timer">
+            <div id="timer-label">剩餘時間</div>
+            <div id="timer-number">00:30</div>
+        </div>
 
     </div>
 
 
     <script>
 
-
-        // ======================================
         // Matter.js
-        // ======================================
-
         const {
             Engine,
             Render,
@@ -424,11 +692,76 @@
             );
 
 
-        const statusText =
-            document.getElementById(
-                "status"
-            );
+        const statusText = {
+            set textContent(value) { }
+        };
 
+        // 背景普通雨滴
+        const backgroundRain =
+            document.getElementById("background-rain");
+
+        // ==========================
+        // 建立自然背景雨滴
+        // ==========================
+
+        for (let i = 0; i < 220; i++) {
+
+            const drop = document.createElement("span");
+
+            drop.className = "background-raindrop";
+
+            // 隨機水平位置
+            drop.style.left = Math.random() * 100 + "%";
+
+            // 隨機決定雨滴的遠近
+            const depth = Math.random();
+
+            let length;
+            let width;
+            let duration;
+            let opacity;
+
+            if (depth < 0.4) {
+
+                // 遠景雨：細、短、慢
+                length = 10 + Math.random() * 15;
+                width = 0.3;
+                duration = 1.4 + Math.random() * 0.6;
+                opacity = 0.2 + Math.random() * 0.2;
+
+            } else if (depth < 0.85) {
+
+                // 中景雨：中等大小
+                length = 25 + Math.random() * 20;
+                width = 0.5;
+                duration = 0.9 + Math.random() * 0.4;
+                opacity = 0.4 + Math.random() * 0.3;
+
+            } else {
+
+                // 近景雨：粗、長、快
+                length = 45 + Math.random() * 25;
+                width = 0.8;
+                duration = 0.55 + Math.random() * 0.3;
+                opacity = 0.65 + Math.random() * 0.3;
+
+            }
+
+            drop.style.height = length + "px";
+            drop.style.width = width + "px";
+
+            // 下落速度
+            drop.style.animationDuration = duration + "s";
+
+            // 隨機開始時間
+            drop.style.animationDelay =
+                (-Math.random() * 3) + "s";
+
+            // 雨滴透明度
+            drop.style.opacity = opacity;
+
+            backgroundRain.appendChild(drop);
+        }
 
         const notice =
             document.getElementById(
@@ -453,6 +786,88 @@
                 "notice-type"
             );
 
+
+        /* ==========================
+           遊戲時間與結算統計
+        ========================== */
+
+        // 測試時間：15 秒
+        const GAME_DURATION = 30 * 1000;
+
+        // 倒數計時器元素
+        const gameTimer = document.getElementById("game-timer");
+        const timerNumber = document.getElementById("timer-number");
+
+        // 紀錄遊戲預計結束的時間
+        let gameEndTime = null;
+
+        // 更新倒數計時器
+        function updateGameTimer() {
+
+            if (!gameStarted || gameEnded || gameEndTime === null) {
+                return;
+            }
+
+            const remaining = Math.max(
+                0,
+                gameEndTime - Date.now()
+            );
+
+            const totalSeconds = Math.ceil(remaining / 1000);
+
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+
+            timerNumber.textContent =
+                String(minutes).padStart(2, "0") + ":" +
+                String(seconds).padStart(2, "0");
+
+            requestAnimationFrame(updateGameTimer);
+        }
+
+        // 遊戲是否已經開始
+        let gameStarted = false;
+
+        // 遊戲是否已經結束
+        let gameEnded = false;
+
+        // 統計本局生成的物件數量
+        const rainCounts = {
+            cat: 0,
+            dog: 0,
+            chair: 0
+        };
+
+        // 統計被雨傘彈飛的物件數量
+        const deflectedCounts = {
+            cat: 0,
+            dog: 0,
+            chair: 0
+        };
+
+        // 結算畫面元素
+        const resultScreen =
+            document.getElementById("result-screen");
+
+        const resultMessage =
+            document.getElementById("result-message");
+
+        const catCount =
+            document.getElementById("cat-count");
+
+        const dogCount =
+            document.getElementById("dog-count");
+
+        const chairCount =
+            document.getElementById("chair-count");
+
+        // 結算畫面停留 8 秒後，自動重新載入回待機畫面
+        const RESULT_DISPLAY_TIME = 10 * 1000;
+
+        // 必須先確認偵測區已清空，才允許下一局開始
+        let readyForNextGame = false;
+        let clearAreaStartTime = null;
+        const CLEAR_AREA_TIME = 1000;
 
         // ======================================
         // 位置設定
@@ -685,6 +1100,12 @@
             redVisible =
                 data.red.visible;
 
+            console.log(
+                "紅色偵測：",
+                redVisible,
+                "藍色偵測：",
+                data.blue.visible
+            );
 
             if (redVisible) {
 
@@ -737,6 +1158,20 @@
             blueVisible =
                 data.blue.visible;
 
+            // 等待兩把傘都離開偵測區至少 1 秒，才開放下一局。
+            // 避免結算後重新載入時，上一組還在場上的玩家立刻觸發遊戲。
+            if (!readyForNextGame) {
+                if (!redVisible && !blueVisible) {
+                    if (clearAreaStartTime === null) {
+                        clearAreaStartTime = Date.now();
+                    }
+                    if (Date.now() - clearAreaStartTime >= CLEAR_AREA_TIME) {
+                        readyForNextGame = true;
+                    }
+                } else {
+                    clearAreaStartTime = null;
+                }
+            }
 
             if (blueVisible) {
 
@@ -928,10 +1363,39 @@
             else {
 
                 statusText.textContent =
-                    "等待玩家...";
+                    "雨天已開始｜等待玩家加入";
 
             }
 
+            // 切換背景雨滴
+
+            // 只有遊戲尚未開始時，才依照偵測狀態切換背景
+            if (!gameStarted && !gameEnded) {
+
+                backgroundRain.classList.toggle(
+                    "hide",
+                    redVisible || blueVisible
+                );
+
+                document.getElementById("intro-text").classList.toggle(
+                    "hide",
+                    redVisible || blueVisible
+                );
+
+            }
+
+            // 遊戲一旦開始，就永久隱藏開頭的普通雨滴
+            if (gameStarted || gameEnded) {
+
+                backgroundRain.classList.add("hide");
+                document.getElementById("intro-text").classList.add("hide");
+
+            }
+
+            console.log(
+                "背景雨滴是否隱藏：",
+                backgroundRain.classList.contains("hide")
+            );
 
             // ==========================
             // Matter.js 雨傘
@@ -1266,6 +1730,133 @@
         const rainObjects =
             new Map();
 
+        // ==========================
+        // 產生遊戲結果 QR Code
+        // ==========================
+
+        function generateResultQR(cats, dogs, chairs) {
+
+            const qrContainer =
+                document.getElementById("result-qrcode");
+
+            // 清除上一局的 QR Code
+            qrContainer.innerHTML = "";
+
+            // 手機結果頁的公開網址
+            const RESULT_URL =
+                "https://你的帳號.github.io/你的專案/result.html";
+
+            // 把本局統計數據加入網址
+            const url = new URL(RESULT_URL);
+
+            url.searchParams.set("cat", cats);
+            url.searchParams.set("dog", dogs);
+            url.searchParams.set("chair", chairs);
+
+            // 產生 QR Code
+            new QRCode(qrContainer, {
+                text: url.toString(),
+                width: 180,
+                height: 180,
+                colorDark: "#142B49",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+
+        }
+
+        /* ==========================
+           遊戲結束與結算
+        ========================== */
+
+        function endGame() {
+
+            // 避免重複結算
+            if (gameEnded) {
+                return;
+            }
+
+            gameEnded = true;
+
+            // 倒數結束
+            timerNumber.textContent = "00:00";
+
+            // 隱藏遊戲計時器
+            gameTimer.classList.remove("show");
+
+            // 計算遊戲結束時，畫面內還存在的物件
+            const finalCounts = {
+                cat: 0,
+                dog: 0,
+                chair: 0
+            };
+
+            // 查看目前所有尚未被移除的物件
+            rainObjects.forEach(function (body) {
+
+                const type = body.rainType;
+
+                // 確認是貓、狗或椅子
+                if (finalCounts[type] !== undefined) {
+
+                    // 計入對應種類
+                    finalCounts[type]++;
+
+                }
+
+            });
+
+            // 取得各種類的最終數量
+            const totalCats = finalCounts.cat;
+            const totalDogs = finalCounts.dog;
+            const totalChairs = finalCounts.chair;
+
+
+            // 顯示最後累積的數量
+            catCount.textContent = totalCats;
+            dogCount.textContent = totalDogs;
+            chairCount.textContent = totalChairs;
+
+            // 根據這一局的結果產生專屬 QR Code
+            generateResultQR(
+                totalCats,
+                totalDogs,
+                totalChairs
+            );
+
+            if (totalChairs > 0 &&
+                totalCats === 0 &&
+                totalDogs === 0) {
+
+                resultMessage.textContent =
+                    "你被椅子雨淹沒了！小心別被椅子砸到！";
+
+            } else if (totalCats + totalDogs > 0 &&
+                totalChairs === 0) {
+
+                resultMessage.textContent =
+                    "你被貓狗雨淹沒了！真是一場驚人的大雨！";
+
+            } else if (totalCats + totalDogs > 0 &&
+                totalChairs > 0) {
+
+                resultMessage.textContent =
+                    "貓狗和椅子一起從天而降！你經歷了超混亂的一場雨！";
+
+            } else {
+
+                resultMessage.textContent =
+                    "這場雨結束了！下次再來挑戰吧！";
+            }
+
+            // 顯示結算畫面
+            resultScreen.classList.add("show");
+
+            // 停留指定秒數後，自動回到初始下雨待機畫面
+            setTimeout(() => {
+                location.reload();
+            }, RESULT_DISPLAY_TIME);
+        }
 
         // ======================================
         // 建立一個雨
@@ -1326,6 +1917,12 @@
                 type;
 
 
+            // 統計本局生成的物件數量
+            if (gameStarted && !gameEnded) {
+                rainCounts[type]++;
+            }
+
+
             body.iconSize =
                 iconSize;
 
@@ -1366,6 +1963,11 @@
                 .getElementById("game")
                 .appendChild(element);
 
+            // 一建立就先設定正確位置，避免左上角閃爍
+            element.style.transform =
+                `translate(${x - iconSize / 2}px, ${y - iconSize / 2}px)`;
+
+            element.style.visibility = "visible";
 
             body.element =
                 element;
@@ -1486,7 +2088,7 @@
 
                         const direction =
                             rain.position.x <
-                            umbrellaX
+                                umbrellaX
                                 ? -1
                                 : 1;
 
@@ -1649,15 +2251,40 @@
             "beforeUpdate",
             event => {
 
-                // 如果完全沒有人
-                // 直接跳過不生成雨
-
-                if (
-                    !redVisible &&
-                    !blueVisible
-                ) {
-
+                // 遊戲結束後，不再生成新物件
+                if (gameEnded) {
                     return;
+                }
+
+                // 偵測區尚未清空過，或目前沒有玩家，都不開始遊戲
+                if (!readyForNextGame || (!redVisible && !blueVisible)) {
+                    return;
+                }
+
+                // 第一次偵測到玩家時，開始倒數
+                if (!gameStarted) {
+
+                    gameStarted = true;
+
+                    // 計算遊戲結束的時間
+                    gameEndTime = Date.now() + GAME_DURATION;
+
+                    // 顯示倒數計時器
+                    gameTimer.classList.add("show");
+
+                    // 立即顯示起始時間
+                    timerNumber.textContent =
+                        String(Math.floor(GAME_DURATION / 60000)).padStart(2, "0") +
+                        ":" +
+                        String(Math.floor((GAME_DURATION % 60000) / 1000)).padStart(2, "0");
+
+                    // 開始更新倒數
+                    requestAnimationFrame(updateGameTimer);
+
+                    // 原本的遊戲結束功能保留
+                    setTimeout(function () {
+                        endGame();
+                    }, GAME_DURATION);
 
                 }
 
@@ -1700,10 +2327,10 @@
 
                     const type =
                         types[
-                            Math.floor(
-                                Math.random() *
-                                types.length
-                            )
+                        Math.floor(
+                            Math.random() *
+                            types.length
+                        )
                         ];
 
 
@@ -1728,10 +2355,7 @@
             }
         );
 
-
-        // ======================================
         // 清理雨
-        // ======================================
 
         function cleanup() {
 
@@ -1770,10 +2394,7 @@
 
         cleanup();
 
-
-        // ======================================
         // Resize
-        // ======================================
 
         window.addEventListener(
             "resize",
