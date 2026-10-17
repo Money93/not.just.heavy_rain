@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>俚雨｜我的遊戲結果</title>
+    <style>
+        body {
+            background: #edf1f5;
+            font-family: "Noto Sans TC", sans-serif;
+            text-align: center;
+            padding: 24px 12px;
+        }
+
+        canvas {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            display: block;
+            margin: 0 auto 20px;
+        }
+
+        button {
+            background: #142B49;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="result-card" width="900" height="1200"></canvas>
+    <button id="save">儲存我的俚雨紀念卡</button>
+
+    <script>
+        const params = new URLSearchParams(location.search);
+
+        function count(name) {
+            const n = Number(params.get(name));
+            return Number.isSafeInteger(n) && n >= 0 ? n : 0;
+        }
+
+        const cats = count("cat");
+        const dogs = count("dog");
+        const chairs = count("chair");
+
+        const canvas = document.getElementById("result-card");
+        const ctx = canvas.getContext("2d");
+
+        // 卡片背景
+        ctx.fillStyle = "#142B49";
+        ctx.fillRect(0, 0, 900, 1200);
+
+        // 卡片文字
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#ffffff";
+
+        ctx.font = "bold 90px sans-serif";
+        ctx.fillText("俚雨", 450, 170);
+
+        ctx.font = "42px sans-serif";
+        ctx.fillText("同一場雨，世界會怎麼說？", 450, 260);
+
+        ctx.font = "bold 55px sans-serif";
+        ctx.fillText("我的俚雨紀錄", 450, 430);
+
+        ctx.font = "50px sans-serif";
+        ctx.fillText("貓咪  " + cats + " 隻", 450, 580);
+        ctx.fillText("狗狗  " + dogs + " 隻", 450, 680);
+        ctx.fillText("椅子  " + chairs + " 張", 450, 780);
+
+        ctx.font = "34px sans-serif";
+        ctx.fillText("謝謝你參與這場特別的雨！", 450, 1010);
+
+        // 儲存成 PNG
+        document.getElementById("save").onclick = function () {
+            const link = document.createElement("a");
+            link.download = "我的俚雨紀念卡.png";
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        };
+    </script>
+</body>
+
+</html>
