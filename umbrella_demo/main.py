@@ -134,7 +134,7 @@ print("按 Q 離開")
 # 設定
 # =========================
 
-SMOOTHING = 0.2
+SMOOTHING = 0.15
 
 
 # 偵測不到完整 3 點時，
@@ -440,15 +440,15 @@ while True:
     lower_red1 = np.array([
 
         0,
-        80,
-        50
+        145,
+        75
 
     ])
 
 
     upper_red1 = np.array([
 
-        12,
+        6,
         255,
         255
 
@@ -457,16 +457,16 @@ while True:
 
     lower_red2 = np.array([
 
-        168,
-        80,
-        50
+        170,
+        145,
+        75
 
     ])
 
 
     upper_red2 = np.array([
 
-        180,
+        179,
         255,
         255
 
@@ -502,6 +502,15 @@ while True:
 
     ) 
 
+    # 清除紅色遮罩中的小雜點
+    kernel = np.ones((3, 3), np.uint8)
+
+    red_mask = cv2.morphologyEx(
+    red_mask,
+    cv2.MORPH_OPEN,
+    kernel
+)
+
 
     # =========================
     # 藍色
@@ -509,16 +518,16 @@ while True:
 
     lower_blue = np.array([
 
-        90,
-        120,
-        70
+        85,
+        20,
+        65
 
     ])
 
 
     upper_blue = np.array([
 
-        135,
+        125,
         255,
         255
 

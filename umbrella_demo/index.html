@@ -876,10 +876,10 @@
         const CAMERA_WIDTH = 640;
 
 
-        const SIZE_MIN = 50;
+        const SIZE_MIN = 55;
 
 
-        const SIZE_MAX = 100;
+        const SIZE_MAX = 80;
 
 
         const UMBRELLA_TOP =
@@ -1744,7 +1744,7 @@
 
             // 手機結果頁的公開網址
             const RESULT_URL =
-                "https://你的帳號.github.io/你的專案/result.html";
+                " https://yzu1122032.github.io/Slang-Rain-Result/";
 
             // 把本局統計數據加入網址
             const url = new URL(RESULT_URL);
@@ -1864,10 +1864,27 @@
 
         function spawnRain(type) {
 
-            const x =
-                60 +
-                Math.random() *
-                (innerWidth - 120);
+            let lastRainX = null;
+
+            let x;
+
+            if (lastRainX !== null && Math.random() < 0.35) {
+
+                // 35% 機率在上一張圖片附近出現
+                x = lastRainX + (Math.random() - 0.5) * 120;
+
+            } else {
+
+                // 65% 機率正常隨機掉落
+                x = 60 + Math.random() * (innerWidth - 120);
+
+            }
+
+            // 避免圖片超出畫面左右邊界
+            x = clamp(x, 60, innerWidth - 60);
+
+            // 記住這次的位置
+            lastRainX = x;
 
 
             const y = -80;
@@ -2243,7 +2260,7 @@
         let spawnTimer = 0;
 
 
-        let nextSpawnTime = 500;
+        let nextSpawnTime = 200;
 
 
         Events.on(
@@ -2307,9 +2324,9 @@
 
 
                 nextSpawnTime =
-                    350 +
+                    150 +
                     Math.random() *
-                    450;
+                    200;
 
 
                 // ==========================
