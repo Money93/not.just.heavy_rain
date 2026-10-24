@@ -1,0 +1,30 @@
+俚雨｜六國透明 WebM 動態輪廓碰撞工具（2026-10）
+
+【已準備好的影片】
+貓 cat.webm（英國）、狗 dog.webm（英國）、椅子 chair.webm（希臘）、刀 knife.webm（葡萄牙）、青蛙 frog.webm（波蘭）、繩子 rope.webm（法國）、蛇 snake.webm（巴西）。
+其中只有「蜥蜴 lizard.webm」未收到，巴西蜥蜴目前在遊戲中用預設圖示，不會有影片動態輪廓；加入該檔後可自行產生。
+
+【準備工作：只要做一次】
+1. Windows 安裝 Python（已經能執行 main.py 就不用重裝）。
+2. 終端機執行：python -m pip install opencv-python numpy websockets
+3. 安裝 FFmpeg，並確定命令 ffmpeg -version、ffprobe -version 均能運作。
+   特別是透明 WebM 要有支援 VP9 alpha 的 libvpx-vp9 解碼器。
+
+【開始使用新版碰撞編輯器】
+1. 解壓縮所有檔案，不要只開啟 ZIP 內的 HTML。
+2. 雙擊「啟動碰撞編輯器.bat」；視窗開啟 http://127.0.0.1:8766/dynamic_editor.html 。
+3. 下拉選國家物件；可以先觀看已產生的逐影格輪廓，拖曳時間軸觀察輪廓是否跟著變形。
+4. 要重新分析某物件時，將該物件的 .webm 影片放進資料夾（檔名須對應），選定更新率，按「Python 自動重新擷取整段影片」。
+5. 若某一影格不準確，拖曳橘色頂點、雙擊邊線新增頂點、右鍵頂點刪除。按「儲存編輯結果到遊戲」。
+6. 每一物件分別儲存；輸出會存進 collision_data.js。遊戲 HTML 會自動讀取，不需要手動貼程式碼。
+7. 遊戲使用 index.html，請讓上述本機編輯器伺服器保持開啟；在另一個終端機執行 python main.py，再到 http://127.0.0.1:8766/index.html 打開遊戲。
+
+【原本 collision_editor.html】
+已被 dynamic_editor.html 取代。舊版只會編輯固定影格輪廓。
+
+【技術限制】
+* 本版使用 Python OpenCV 預先分析每秒 12 格的透明外輪廓，遊戲依 WebM 的播放時間同步切換 Matter.js 多邊形碰撞，不是即時每個像素的碰撞。
+* 多個物件會使用同一種類影片的共同播放時間；同類掉落物目前會同相位動畫。
+* Matter.js 碰撞形狀由多邊形分解而成。細小孔洞、彼此分離的碎片或極細的末端可能無法準確反映。
+* 更高 FPS 可能使遊戲運行變慢，建議先 12 fps 進行現場測試。
+* 本程式尚未使用你展場的實體攝影機進行完整硬體驗證。
