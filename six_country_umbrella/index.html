@@ -599,7 +599,7 @@
             yellow: { country: '葡萄牙', type: '刀子雨', idiom: "It's raining knives!", drops: ['knife'], color:'#FFDF00' },
             green:  { country: '波蘭', type: '青蛙雨', idiom: "It's raining frogs!", drops: ['frog'], color:'#00C853' },
             purple: { country: '法國', type: '繩子雨', idiom: 'Il pleut des cordes !', drops: ['rope'], color:'#A000E8' },
-            orange: { country: '巴西', type: '蛇與蜥蜴雨', idiom: "It's raining snakes and lizards!", drops: ['snake'], color:'#FF8800' }
+            orange: { country: '巴西', type: '蛇與蜥蜴雨', idiom: "It's raining snakes and lizards!", drops: ['snake','lizard'], color:'#FF8800' }
         };
         // 這些是展覽上的趣味解說文字，並非當地俚語原文的語言學考證。
         const DROP_INFO = {
@@ -610,7 +610,7 @@
             frog: { name:'青蛙', icon:'🐸', art:'<i class="fa-solid fa-frog"></i>', radius:27, size:52 },
             rope: { name:'繩子', icon:'🪢', art:'<span style="font-size:42px">🪢</span>', radius:30, size:58 },
             snake: { name:'蛇', icon:'🐍', art:'<span style="font-size:44px">🐍</span>', radius:27, size:52 },
-            // 蜥蜴尚未提供影片：暫時不產生圖示與掉落物。
+            lizard: { name:'蜥蜴', icon:'🦎', art:'<span>🦎</span>', radius:27, size:52 },
         };
         // 後續自製圖檔可直接替換 DROP_INFO 中每個物件的 art HTML。
         // 淹沒線不顯示在畫面上。三處橫向分散的穩定堆積物到達門檻才結算。
@@ -627,7 +627,9 @@
         const RESULT_DISPLAY_TIME = 10000;
         const CLEAR_AREA_TIME = 1000;
         const NOTICE_COOLDOWN = 8000;
-        const SIZE_MIN = 55, SIZE_MAX = 80;
+        // 傾斜：三段式＋遲滯，避免角度在臨界點抖動。
+        const TILT_ENTER=23, TILT_EXIT=12;
+        const TILT_EASE=0.15;
         const ids = Object.keys(COUNTRIES);
         const game = document.getElementById('game');
         const backgroundRain = document.getElementById('background-rain');
@@ -682,7 +684,7 @@
             const el=document.createElement('div');
             el.className='umbrella'; el.textContent='☂'; el.style.color=COUNTRIES[id].color;
             document.getElementById('umbrellas').appendChild(el);
-            states[id]={el,body:createUmbrellaBody(id+'Umbrella'),visible:false,previous:false,x:-9999,y:-9999,lastNotice:0};
+            states[id]={el,body:createUmbrellaBody(id+'Umbrella'),visible:false,previous:false,x:-9999,y:-9999,lastNotice:0,tilt:0,displayAngle:-30,targetAngle:-30,hasTilt:false};
         });
         let ground, leftWall, rightWall;
         function setWalls(){
@@ -702,37 +704,49 @@
             notice.classList.add('show'); clearTimeout(noticeTimer);
             noticeTimer=setTimeout(()=>notice.classList.remove('show'),2500);
         }
+        function tiltStage(angle,previous){
+            if(previous===-1){if(angle>-TILT_EXIT)return angle>TILT_ENTER?1:0;return -1;}
+            if(previous===1){if(angle<TILT_EXIT)return angle<-TILT_ENTER?-1:0;return 1;}
+            return angle<-TILT_ENTER?-1:angle>TILT_ENTER?1:0;
+        }
         function receive(data){
-            // 從攝影機訊息選最多兩把傘，維持雙人遊戲規則。
-            // 先保留上一幀已參加的玩家，以避免多個背景色短暫誤觸時跳換。
-            const detected=ids.filter(id=>data[id] && data[id].visible);
-            const existing=ids.filter(id=>states[id].visible && detected.includes(id));
+            // 必須是 Python 已連續確認三個有效圓點的資料才允許加入遊戲。
+            // 新玩家仍須偵測完整三點；已加入的玩家允許 Python 短暫保留追蹤，避免遮擋造成閃爍。
+            const detected=ids.filter(id=>data[id]?.visible===true && data[id]?.valid_points===3);
+            const existing=ids.filter(id=>states[id].visible && data[id]?.visible===true);
             const chosen=[...existing,...detected.filter(id=>!existing.includes(id))].slice(0,2);
-            const cw=Number(data.camera?.width)||640;
+            const cw=Math.max(1,Number(data.camera?.width)||640);
+            const ch=Math.max(1,Number(data.camera?.height)||480);
             for(const id of ids){
-                const s=states[id], d=data[id];
+                const s=states[id],d=data[id];
                 s.visible=chosen.includes(id);
                 if(s.visible && d){
                     const x=clamp(Number(d.x)||0,0,cw);
-                    const size=clamp(Number(d.size)||SIZE_MIN,SIZE_MIN,SIZE_MAX);
+                    const y=clamp(Number(d.y)||0,0,ch);
                     s.x=x/cw*innerWidth;
-                    s.y=innerHeight*.75 + (size-SIZE_MIN)/(SIZE_MAX-SIZE_MIN)*(innerHeight*.20-innerHeight*.75);
+                    // 真正使用攝影機畫面上下位置，不再使用點間大小推估高度。
+                    s.y=clamp(y/ch*innerHeight,innerHeight*.15,innerHeight*.82);
+                    const tilt=tiltStage(Number(d.angle)||0,s.tilt);
+                    s.tilt=tilt;s.hasTilt=true;
+                    // 保留原來圖示 -30° 的正常角度。
+                    s.targetAngle=-30+tilt*45;
+                }else{
+                    s.tilt=0;s.targetAngle=-30;s.hasTilt=false;
                 }
                 const now=Date.now();
                 if(s.visible && !s.previous && now-s.lastNotice>=NOTICE_COOLDOWN){showCountryNotice(id);s.lastNotice=now;}
                 s.previous=s.visible;
                 s.el.classList.toggle('show',s.visible && !gameEnded);
-                Body.setPosition(s.body,s.visible?{x:s.x,y:s.y}:{x:-9999,y:-9999});
-                Body.setVelocity(s.body,{x:0,y:0});
+                if(!s.visible){Body.setPosition(s.body,{x:-9999,y:-9999});Body.setAngle(s.body,-Math.PI/6);}
             }
             if(!readyForNextGame){
                 if(detected.length===0){
                     if(clearAreaStartTime===null)clearAreaStartTime=Date.now();
                     if(Date.now()-clearAreaStartTime>=CLEAR_AREA_TIME)readyForNextGame=true;
-                } else clearAreaStartTime=null;
+                }else clearAreaStartTime=null;
             }
             const playing=ids.some(id=>states[id].visible);
-            const hide=gameStarted||gameEnded||playing;
+            const hide=gameStarted||gameEnded||(readyForNextGame&&playing);
             backgroundRain.classList.toggle('hide',hide);
             introText.classList.toggle('hide',hide);
         }
@@ -746,7 +760,8 @@
         connect();
 
         // WebM 素材設定：有檔案就顯示自製影片，沒有則沿用原本圖示。
-        const MEDIA_FILES={cat:'cat.webm',dog:'dog.webm',chair:'chair.webm',knife:'knife.webm',frog:'frog.webm',snake:'snake.webm',rope:'rope.webm'};
+        const MEDIA_FILES={cat:'cat.webm',dog:'dog.webm',frog:'frog.webm',snake:'snake.webm',lizard:'LIZARD-nobg.webm'};
+        const IMAGE_FILES={chair:'chair.png',knife:'knife.png',rope:'rope.png'};
         const SHAPES=window.COLLISION_DATA || {};
         const VIDEO_SIZE=110; // 掉落物在投影上的實際顯示大小（px）
         // 不再設定數量上限或刪掉最早的掉落物；落地後使用休眠降低運算。
@@ -820,6 +835,21 @@
             const dims=videoDimensions(body.rainType,canvas.width);
             context.drawImage(vid,...crop,(canvas.width-dims.width)/2,(canvas.height-dims.height)/2,dims.width,dims.height);
         }
+        // PNG 素材只載入、繪製一次；旋轉交給 Matter.js，不需要逐格解碼。
+        const stillImages={};
+        Object.entries(IMAGE_FILES).forEach(([type,file])=>{
+            const img=new Image();img.src=file;stillImages[type]=img;
+        });
+        function renderStillImage(body){
+            const image=stillImages[body.rainType],canvas=body.mediaCanvas;
+            if(!canvas||!image?.complete||!image.naturalWidth)return;
+            const ctx=body.mediaContext;ctx.clearRect(0,0,canvas.width,canvas.height);
+            const dims=videoDimensions(body.rainType,canvas.width);
+            ctx.drawImage(image,(canvas.width-dims.width)/2,(canvas.height-dims.height)/2,dims.width,dims.height);
+        }
+        Object.entries(stillImages).forEach(([type,img])=>{
+            img.addEventListener('load',()=>rainObjects.forEach(body=>{if(body.rainType===type)renderStillImage(body);}));
+        });
         let lastVideoDraw=0;
         // Each WebM master provides both the displayed video frame AND collision frame clock.
         // Replace only when the sampled video frame changes, keeping position, rotation, and velocity.
@@ -881,6 +911,7 @@
             if(body.settled || body.hitUmbrella)return;
             renderVideoFrame(body); // 把最後一格保存在該物件自己的 canvas
             body.settled=true;
+            if(body.rainType==='knife')Body.setAngularVelocity(body,0);
             // 堆積後不接受雨傘碰撞，但仍與其他掉落物和地面碰撞。
             setCollisionMask(body,PILE_COLLISION_MASK);
             body.stationarySince=0;
@@ -918,6 +949,23 @@
             });
         });
 
+        // 刀子只在剛生成時短暫旋轉，之後逐漸減速；不再持續強制旋轉。
+        const KNIFE_SPIN_DURATION_MS = 750;
+        const KNIFE_SPIN_SPEED = 0.075;
+        const KNIFE_SPIN_DAMPING = 0.88;
+        Events.on(engine,'beforeUpdate',()=>{
+            if(gameEnded)return;
+            const now=performance.now();
+            rainObjects.forEach(body=>{
+                if(body.rainType!=='knife' || body.settled || body.hitUmbrella || body.isSleeping)return;
+                if(now-body.createdAt<KNIFE_SPIN_DURATION_MS){
+                    Body.setAngularVelocity(body,body.knifeSpinDir*KNIFE_SPIN_SPEED);
+                }else{
+                    const slowed=body.angularVelocity*KNIFE_SPIN_DAMPING;
+                    Body.setAngularVelocity(body,Math.abs(slowed)<0.002?0:slowed);
+                }
+            });
+        });
         function spawnRain(type){
             const cfg=DROP_INFO[type];if(!cfg)return;
             // 不再回收仍在場內的堆積物件，保持遊戲結果與畫面堆積一致。
@@ -936,12 +984,36 @@
                 el.appendChild(cvs);body.mediaCanvas=cvs;body.mediaContext=cvs.getContext('2d',{alpha:true});
             }else el.innerHTML=cfg.art;
             game.appendChild(el);body.element=el;
+            if(IMAGE_FILES[type])renderStillImage(body);
+            if(type==='knife'){body.knifeSpinDir=Math.random()<.5?-1:1;Body.setAngularVelocity(body,body.knifeSpinDir*KNIFE_SPIN_SPEED);}
             // Compound centroid may differ from visual center. Offset both physics and drawing consistently.
             body.elementOffset={x:x-body.position.x,y:y-body.position.y};
             el.style.transform=`translate(${x-size/2}px,${y-size/2}px)`;el.style.visibility='visible';
             rainObjects.set(body.id,body);
         }
         function removeRain(body){if(!rainObjects.has(body.id))return;Composite.remove(world,body);rainObjects.delete(body.id);body.element?.remove();}
+        function deflectRain(rain,direction,umbrella=null){
+            if(!rain||!rainObjects.has(rain.id)||rain.hitUmbrella||rain.settled)return false;
+            rain.hitUmbrella=true;
+            deflectedCounts[rain.rainType]=(deflectedCounts[rain.rainType]||0)+1;
+            if(rain.isSleeping)Sleeping.set(rain,false);
+            setCollisionMask(rain,0);rain.stationarySince=0;
+            Body.setVelocity(rain,{x:direction*(17+Math.random()*6),y:-(7+Math.random()*3)});
+            Body.setAngularVelocity(rain,direction*(.22+Math.random()*.2));
+            rain.frictionAir=.001;
+            setTimeout(()=>removeRain(rain),650);
+            return true;
+        }
+        // 在物理更新前平滑移動＋旋轉碰撞體，畫面跟碰撞體使用同一角度。
+        Events.on(engine,'beforeUpdate',()=>{
+            for(const id of ids){
+                const s=states[id];if(!s.visible)continue;
+                s.displayAngle+=(s.targetAngle-s.displayAngle)*TILT_EASE;
+                Body.setPosition(s.body,{x:s.x,y:s.y});
+                Body.setAngle(s.body,(s.displayAngle+30)*Math.PI/180);
+                Body.setVelocity(s.body,{x:0,y:0});
+            }
+        });
         // 複合碰撞必須從子部件回溯 parent；collisionActive 補足高速移動/接觸持續的情況。
         function onUmbrellaCollision(event){
             for(const pair of event.pairs){
@@ -950,24 +1022,15 @@
                 if(!rain || !rainObjects.has(rain.id) || rain.hitUmbrella || rain.settled)continue;
                 const umbrella=rain===a?b:a;
                 if(!umbrella || !ids.some(id=>umbrella===states[id].body && states[id].visible))continue;
-                rain.hitUmbrella=true;
-                deflectedCounts[rain.rainType]=(deflectedCounts[rain.rainType]||0)+1;
-                // 彈飛物件與堆積區取消物理碰撞，不會撞亂底下的堆積物。
-                if(rain.isSleeping)Sleeping.set(rain,false);
-                setCollisionMask(rain,0);
-                rain.stationarySince=0;
-                const direction=rain.position.x<umbrella.position.x?-1:1;
-                Body.setVelocity(rain,{x:direction*(17+Math.random()*6),y:-(7+Math.random()*3)});
-                Body.setAngularVelocity(rain,direction*(.22+Math.random()*.2));
-                rain.frictionAir=.001;
-                // 有物理彈飛過程，然後一定會從畫面與世界一併移除。
-                setTimeout(()=>removeRain(rain),650);
+                const s=ids.map(id=>states[id]).find(v=>v.body===umbrella);
+                const dir=s?.tilt || (rain.position.x<umbrella.position.x?-1:1);
+                deflectRain(rain,dir,umbrella);
             }
         }
         Events.on(engine,'collisionStart',onUmbrellaCollision);
         Events.on(engine,'collisionActive',onUmbrellaCollision);
         Events.on(render,'afterRender',()=>{
-            for(const id of ids){const s=states[id];if(s.visible){s.el.style.left=s.x+'px';s.el.style.top=s.y+'px';s.el.style.transform='translate(-50%,-50%) rotate(-30deg)';}}
+            for(const id of ids){const s=states[id];if(s.visible){s.el.style.left=s.x+'px';s.el.style.top=s.y+'px';s.el.style.transform=`translate(-50%,-50%) rotate(${s.displayAngle}deg)`;}}
             rainObjects.forEach(body=>{const n=body.iconSize,o=body.elementOffset||{x:0,y:0};const cs=Math.cos(body.angle),sn=Math.sin(body.angle);const ox=o.x*cs-o.y*sn,oy=o.x*sn+o.y*cs;body.element.style.transform=`translate(${body.position.x+ox-n/2}px,${body.position.y+oy-n/2}px) rotate(${body.angle}rad)`;});
             if(performance.now()-lastVideoDraw>55){rainObjects.forEach(renderVideoFrame);lastVideoDraw=performance.now();}
         });

@@ -26,25 +26,26 @@ BGR_DRAW = {
 }
 CAMERA_WIDTH, CAMERA_HEIGHT = 640, 480
 SMOOTHING = 0.15
-LOST_TIMEOUT = 0.45  # 暫時被手遮住時短暫保留，不再保持 3 秒幽靈雨傘
 MIN_AREA, MAX_AREA = 90, 10000
 MIN_CIRCULARITY = 0.58  # 略放寬圓形判斷，避免光線讓邊緣破碎
-MAX_CANDIDATES = 12  # 允許同色干擾點存在，但只採用通過三角形驗證的組合
-# 三點形狀：一點在上，兩點在下，底邊接近水平（可容許傘輕微傾斜）
-MIN_TRIANGLE_SIDE = 35   # 攝影機 640x480 的初始參考值，可依實際距離調整
-MAX_TRIANGLE_SIDE = 310
-MIN_BASE_RATIO = 0.65  # 底邊寬度 / 兩側平均長度
-MAX_BASE_RATIO = 1.65
-MIN_HEIGHT_RATIO = 0.45 # 三角形高度 / 底邊寬度
-MAX_HEIGHT_RATIO = 1.65
-MAX_BASE_TILT = 0.38    # 底部兩點的高度差 / 底邊寬度
-MAX_SIDE_IMBALANCE = 0.38  # 左右兩腰差異比例
-MAX_DOT_RADIUS_RATIO = 2.0 # 三點圓的大小不得差太多
+# 正面攝影機：三點幾何以旋轉不變的邊長比例判斷，允許 ±65° 傾斜。
+MIN_TRIANGLE_SIDE = 26
+MAX_TRIANGLE_SIDE = 320
+MIN_HEIGHT_RATIO = 0.53       # 頂點到底邊的垂直高度 / 底邊
+MAX_HEIGHT_RATIO = 1.10
+MAX_SIDE_IMBALANCE = 0.22
+MAX_DOT_RADIUS_RATIO = 2.0
+MAX_CANDIDATES = 14
+CONFIRM_FRAMES = 4           # 連續四次完整三點才正式啟用
+LOST_TIMEOUT = 1.5       # 偶爾遮到圓點時保留已確認的雨傘 0.85 秒
+MAX_TRACK_JUMP = 130         # 跟蹤時優先靠近上一次位置
+TILT_MAX_DEGREES = 68
 clients = set()
 
 states = {
-    key: {'smooth_x': None, 'smooth_size': None, 'center_y': 0,
-          'last_seen': 0.0, 'active': False, 'points': []}
+    key: {'smooth_x': None, 'smooth_y': None, 'smooth_size': None,
+          'smooth_angle': None, 'center_y': 0, 'last_seen': 0.0,
+          'active': False, 'valid_streak': 0, 'points': []}
     for key in COLOR_RANGES
 }
 
@@ -53,46 +54,37 @@ def distance(a, b):
     return math.hypot(a[0]-b[0], a[1]-b[1])
 
 
-def triangle_score(three):
-    """回傳幾何得分，或 None（非圖中上1下2的三角形）。"""
-    pts = sorted(three, key=lambda c: c['point'][1])
-    apex = pts[0]
-    lower = sorted(pts[1:], key=lambda c: c['point'][0])
-    left, right = lower
-    top = apex['point']
-    a, b = left['point'], right['point']
-    base = distance(a, b)
-    side_l, side_r = distance(top, a), distance(top, b)
-    mean_side = (side_l + side_r) / 2
-    if min(base, side_l, side_r) < MIN_TRIANGLE_SIDE:
+def identify_triangle(three):
+    """以最長邊當底邊、對角點當頂點；以邊長比例判定、與畫面方向無關。"""
+    p = [c['point'] for c in three]
+    pairs = [(distance(p[i], p[j]), i, j) for i,j in ((0,1),(0,2),(1,2))]
+    base, i, j = max(pairs)
+    apex_i = 3-i-j
+    left, right = p[i], p[j]
+    apex = p[apex_i]
+    side_a = distance(apex, left)
+    side_b = distance(apex, right)
+    if min(base,side_a,side_b) < MIN_TRIANGLE_SIDE or max(base,side_a,side_b) > MAX_TRIANGLE_SIDE:
         return None
-    if max(base, side_l, side_r) > MAX_TRIANGLE_SIDE:
+    if abs(side_a-side_b) / max((side_a+side_b)/2,1) > MAX_SIDE_IMBALANCE:
         return None
-    if not MIN_BASE_RATIO <= base / mean_side <= MAX_BASE_RATIO:
-        return None
-    if abs(side_l - side_r) / mean_side > MAX_SIDE_IMBALANCE:
-        return None
-    if abs(a[1] - b[1]) / base > MAX_BASE_TILT:
-        return None
-    height = ((a[1] + b[1]) / 2 - top[1])
-    if not MIN_HEIGHT_RATIO <= height / base <= MAX_HEIGHT_RATIO:
-        return None
-    # 頂點必須大致落在底部兩點之間；允許稍微偏移
-    mid_x = (a[0] + b[0]) / 2
-    if abs(top[0] - mid_x) / base > 0.32:
+    midpoint = ((left[0]+right[0])/2, (left[1]+right[1])/2)
+    height = math.hypot(apex[0]-midpoint[0], apex[1]-midpoint[1])
+    ratio = height/base
+    if not MIN_HEIGHT_RATIO <= ratio <= MAX_HEIGHT_RATIO:
         return None
     radii = [c['radius'] for c in three]
-    if max(radii) / max(min(radii), 1) > MAX_DOT_RADIUS_RATIO:
+    if max(radii)/max(min(radii),1) > MAX_DOT_RADIUS_RATIO:
         return None
-    # 越像圖中的等腰三角形，分數越高；偏好大小接近的圓點
-    return (3.0 - abs(side_l-side_r)/mean_side
-            - abs(a[1]-b[1])/base
-            - 0.5 * abs(top[0]-mid_x)/base
-            - 0.25 * (max(radii)/min(radii)-1))
+    # 從底邊中點指向頂點：正上方為 0°，向右為正。
+    angle = math.degrees(math.atan2(apex[0]-midpoint[0], midpoint[1]-apex[1]))
+    if abs(angle) > TILT_MAX_DEGREES:
+        return None
+    quality = 3.0 - 3*abs(ratio-0.80) - 2*abs(side_a-side_b)/max(base,1)
+    return quality, angle, apex, left, right
 
 
-def detect_points(mask, previous_x=None, previous_size=None):
-    """從所有同色候選中尋找有效三角形，而不是取最大的三點。"""
+def detect_points(mask, state):
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     candidates = []
     for contour in contours:
@@ -100,57 +92,66 @@ def detect_points(mask, previous_x=None, previous_size=None):
         if not MIN_AREA <= area <= MAX_AREA:
             continue
         perimeter = cv2.arcLength(contour, True)
-        if perimeter <= 0 or 4 * math.pi * area / (perimeter * perimeter) < MIN_CIRCULARITY:
+        if perimeter <= 0 or 4*math.pi*area/(perimeter*perimeter) < MIN_CIRCULARITY:
             continue
-        (x, y), radius = cv2.minEnclosingCircle(contour)
+        (x,y), radius = cv2.minEnclosingCircle(contour)
         if 5 <= radius <= 80:
-            candidates.append({'area': area, 'point': (int(x), int(y)), 'radius': radius})
-    candidates.sort(key=lambda c: c['area'], reverse=True)
+            candidates.append({'area':area,'point':(int(x),int(y)),'radius':radius})
+    candidates.sort(key=lambda c:c['area'], reverse=True)
     candidates = candidates[:MAX_CANDIDATES]
-    best_points, best_score = [], float('-inf')
-    for three in combinations(candidates, 3):
-        score = triangle_score(three)
-        if score is None:
-            continue
-        center_x = sum(c['point'][0] for c in three) / 3
-        size = sum(distance(three[i]['point'], three[j]['point'])
-                   for i, j in ((0,1),(0,2),(1,2))) / 3
-        # 保持目前追蹤的雨傘優先，避免有雜點時突然跳到另一組
-        if previous_x is not None:
-            score -= min(abs(center_x - previous_x) / 200, 2)
-        if previous_size is not None:
-            score -= min(abs(size - previous_size) / 150, 1)
-        if score > best_score:
-            best_score = score
-            best_points = [c['point'] for c in three]
-    return best_points
+    best=None;best_score=-1e9
+    for three in combinations(candidates,3):
+        result=identify_triangle(three)
+        if result is None: continue
+        quality,angle,apex,left,right=result
+        cx=sum(c['point'][0] for c in three)/3
+        cy=sum(c['point'][1] for c in three)/3
+        size=sum(distance(three[i]['point'],three[j]['point']) for i,j in ((0,1),(0,2),(1,2)))/3
+        score=quality
+        if state['smooth_x'] is not None:
+            jump=math.hypot(cx-state['smooth_x'],cy-state['smooth_y'])
+            score-=min(jump/75,5)
+            if state['active'] and jump>MAX_TRACK_JUMP: continue
+            score-=min(abs(size-state['smooth_size'])/90,2)
+        if score>best_score:
+            best_score=score;best=(apex,left,right,cx,cy,size,angle)
+    return best
 
 
-def update_state(state, points, now):
-    state['points'] = points
-    if len(points) == 3:
-        x = sum(p[0] for p in points) / 3
-        y = sum(p[1] for p in points) / 3
-        size = sum(distance(points[i], points[j]) for i, j in ((0,1),(0,2),(1,2))) / 3
-        state['smooth_x'] = x if state['smooth_x'] is None else (1-SMOOTHING)*state['smooth_x']+SMOOTHING*x
-        state['smooth_size'] = size if state['smooth_size'] is None else (1-SMOOTHING)*state['smooth_size']+SMOOTHING*size
-        state['center_y'] = y
-        state['last_seen'] = now
-        state['active'] = True
-    elif state['active'] and now-state['last_seen']>LOST_TIMEOUT:
-        state['active'] = False
-        state['smooth_x'] = None
-        state['smooth_size'] = None
+def smooth(old,new,alpha=SMOOTHING):
+    return new if old is None else old*(1-alpha)+new*alpha
 
 
-def make_payload(width, height):
-    data = {'camera': {'width': width, 'height': height}}
-    for key, state in states.items():
-        data[key] = {
-            'visible': state['active'],
-            'x': state['smooth_x'] if state['smooth_x'] is not None else 0,
-            'y': state['center_y'],
-            'size': state['smooth_size'] if state['smooth_size'] is not None else 60,
+def update_state(state, result, now):
+    if result is not None:
+        apex,left,right,x,y,size,angle=result
+        state['points']=[apex,left,right]
+        state['smooth_x']=smooth(state['smooth_x'],x,0.25)
+        state['smooth_y']=smooth(state['smooth_y'],y,0.25)
+        state['smooth_size']=smooth(state['smooth_size'],size)
+        state['smooth_angle']=smooth(state['smooth_angle'],angle,0.20)
+        state['last_seen']=now
+        state['valid_streak']+=1
+        if state['valid_streak']>=CONFIRM_FRAMES:state['active']=True
+    else:
+        state['points']=[]
+        state['valid_streak']=0
+        # 已啟用的傘容許短暫遮擋，但遊戲開場絕不能靠殘留單點啟動。
+        if now-state['last_seen']>LOST_TIMEOUT:
+            state['active']=False
+            state['smooth_x']=state['smooth_y']=state['smooth_size']=state['smooth_angle']=None
+
+
+def make_payload(width,height):
+    data={'camera':{'width':width,'height':height}}
+    for key,state in states.items():
+        data[key]={
+            'visible':state['active'],
+            'valid_points':len(state['points']),
+            'x':state['smooth_x'] if state['smooth_x'] is not None else 0,
+            'y':state['smooth_y'] if state['smooth_y'] is not None else 0,
+            'size':state['smooth_size'] if state['smooth_size'] is not None else 60,
+            'angle':state['smooth_angle'] if state['smooth_angle'] is not None else 0,
         }
     return data
 
@@ -192,18 +193,16 @@ async def main():
                     for lower, upper in ranges:
                         mask = cv2.bitwise_or(mask, cv2.inRange(hsv, np.array(lower, dtype=np.uint8), np.array(upper, dtype=np.uint8)))
                     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-                    points = detect_points(mask, states[key]['smooth_x'], states[key]['smooth_size'])
-                    state = states[key]
-                    update_state(state, points, now)
-                    if len(points) == 3:
-                        triangle = sorted(points, key=lambda p: p[1])
-                        base = sorted(triangle[1:], key=lambda p: p[0])
-                        cv2.polylines(frame, [np.array([triangle[0], base[0], base[1]], dtype=np.int32)],
-                                      True, BGR_DRAW[key], 2)
-                        for i, point in enumerate([triangle[0], *base]):
-                            cv2.circle(frame, point, 8, BGR_DRAW[key], -1)
-                            cv2.putText(frame, f'{key.upper()}{i+1}', (point[0]+10, point[1]),
-                                        cv2.FONT_HERSHEY_SIMPLEX, .55, BGR_DRAW[key], 2)
+                    state=states[key]
+                    result=detect_points(mask,state)
+                    update_state(state,result,now)
+                    if result is not None:
+                        apex,left,right=state['points']
+                        cv2.polylines(frame,[np.array([apex,left,right],dtype=np.int32)],True,BGR_DRAW[key],2)
+                        for i,pt in enumerate((apex,left,right)):
+                            cv2.circle(frame,pt,8,BGR_DRAW[key],-1)
+                            cv2.putText(frame,f'{key[:1].upper()}{i+1}',(pt[0]+8,pt[1]),
+                                        cv2.FONT_HERSHEY_SIMPLEX,.5,BGR_DRAW[key],2)
                 data = make_payload(width, height)
                 if clients:
                     message = json.dumps(data)
@@ -211,7 +210,7 @@ async def main():
                 cv2.putText(frame, f'CAMERA: {width} x {height}', (10, 26), cv2.FONT_HERSHEY_SIMPLEX, .65, (255,255,255), 2)
                 for i, (key, state) in enumerate(states.items()):
                     pcount = len(state['points'])
-                    suffix = f' X:{state["smooth_x"]:.0f} SIZE:{state["smooth_size"]:.0f}' if state['smooth_x'] is not None else ''
+                    suffix = f' X:{state["smooth_x"]:.0f} Y:{state["smooth_y"]:.0f} A:{state["smooth_angle"]:.0f}' if state['smooth_x'] is not None else ''
                     cv2.putText(frame, f'{key.upper()} {pcount}/3{suffix}', (10, 55+i*27), cv2.FONT_HERSHEY_SIMPLEX, .56, BGR_DRAW[key], 2)
                 cv2.imshow('Umbrella Camera - Six Countries', frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
