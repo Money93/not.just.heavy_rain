@@ -1,0 +1,13 @@
+Transform the image into a Geometric Minimalist Silhouette style, strictly matching the provided reference images.
+
+Create a pure solid black (#000000) silhouette using bold, simplified, irregular polygonal shapes. The design should feature clean, crisp, smooth-edged contours with moderately angular geometric transitions and a few subtle softened corners.
+
+Use large, unified black shapes instead of detailed linework. Simplify anatomy and structure while preserving the subject's recognizable silhouette, essential proportions, original pose, orientation, and viewing angle.
+
+Remove all unnecessary interior details, including facial features, eyes, mouth, fur, textures, shading, highlights, gradients, and decorative lines. Use negative space only where necessary to separate important shapes or limbs.
+
+Maintain a completely flat 2D vector-like appearance. Avoid overly rounded cartoon shapes, excessive triangulation, photorealism, or 3D low-poly rendering.
+
+The final artwork should feel bold, playful, abstract, minimal, and geometrically stylized. Ensure the entire subject remains intact, centered, and clearly recognizable.
+
+Pure black silhouette, transparent background, clean composition, no text, no additional objects.

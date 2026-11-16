@@ -1,0 +1,90 @@
+{
+  "stage": 1,
+  "source_sha256": "c92b4d675e8bfb3cf48613cd0ef635bb8f4559794c9a29eb719faa12b04de7d3",
+  "source_topology": {
+    "components": 1,
+    "holes": 0
+  },
+  "checks": [
+    {
+      "pose": "A",
+      "bbox": [
+        110,
+        100,
+        419,
+        417
+      ],
+      "topology": {
+        "components": 1,
+        "holes": 0
+      }
+    },
+    {
+      "pose": "B",
+      "bbox": [
+        102,
+        95,
+        422,
+        419
+      ],
+      "topology": {
+        "components": 1,
+        "holes": 0
+      }
+    },
+    {
+      "pose": "C",
+      "bbox": [
+        97,
+        91,
+        424,
+        423
+      ],
+      "topology": {
+        "components": 1,
+        "holes": 0
+      }
+    },
+    {
+      "pose": "D",
+      "bbox": [
+        105,
+        96,
+        421,
+        420
+      ],
+      "topology": {
+        "components": 1,
+        "holes": 0
+      }
+    },
+    {
+      "pose": "E",
+      "bbox": [
+        121,
+        106,
+        412,
+        413
+      ],
+      "topology": {
+        "components": 1,
+        "holes": 0
+      }
+    },
+    {
+      "pose": "F",
+      "bbox": [
+        113,
+        102,
+        417,
+        416
+      ],
+      "topology": {
+        "components": 1,
+        "holes": 0
+      }
+    }
+  ],
+  "source_unchanged": true,
+  "full_animation_generated": false
+}

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>俚雨｜雙視角青蛙・關鍵姿勢確認</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f2f5f8;color:#17212b;font:16px system-ui,sans-serif}main{max-width:1180px;margin:auto;padding:28px}h1{font-size:25px;margin:0 0 12px}p{line-height:1.6;color:#506071}.toolbar{display:flex;gap:18px;align-items:center;flex-wrap:wrap;background:white;padding:16px;border-radius:12px;margin:20px 0}button,select,input{font:inherit}button,select{padding:8px 14px;border:1px solid #b9c7d3;border-radius:7px;background:white;cursor:pointer}button.active{background:#234c58;color:white}.pair{display:grid;grid-template-columns:1fr 1fr;gap:20px}.card{background:white;border-radius:14px;padding:18px}.stage{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;background:white}.stage.checker{background:conic-gradient(#dbe2e9 25%,white 0 50%,#dbe2e9 0 75%,white 0) 0 0/32px 32px}.stage img{width:100%;height:100%;object-fit:contain}.thumbs{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin:15px 0}.thumbs button{padding:3px;font-size:12px}.thumbs img{width:100%;display:block;background:#e2e8f0}h2{font-size:20px}a{color:#27647a}.note{font-size:14px}#pose{min-width:85px;font-weight:600}@media(max-width:700px){.pair{grid-template-columns:1fr}main{padding:15px}}
+</style>
+<main><h1>《俚雨》雙視角青蛙｜六個關鍵姿勢確認</h1>
+<p>第一階段：檢查各自的角色輪廓、張開程度與姿態方向。此頁逐張切換六個姿勢，尚未生成平滑中間影格；完整 2 秒循環、Sprite Sheet 與下墜模擬將在確認後製作。</p>
+<div class="toolbar"><button id="play">播放關鍵姿勢</button><button id="previous">←</button><span id="pose">Pose A</span><button id="next">→</button><label>姿勢 <input id="scrub" type="range" min="0" max="5" value="0" step="1"></label><label>審閱速度 <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option></select></label><label><input type="checkbox" id="checker">透明棋盤</label></div>
+<div class="pair" id="cards"></div>
+<p class="note">調整骨架、六個姿勢角度與前後腳幅度：雙擊同資料夾的 <strong>launch_editor.bat</strong>。重新輸出後重新整理本頁即可；所有白底與棋盤只用於預覽，PNG 保持透明。</p>
+</main>
+<script>
+const cards=document.querySelector('#cards');
+for(const v of ['A','B']){
+ const card=document.createElement('section');card.className='card';
+ card.innerHTML=`<h2>動畫 ${v}｜${v==='A'?'空中失衡型':'空中漂浮翻動型'}</h2><div class="stage"><img id="frog${v}" alt="動畫 ${v} 關鍵姿勢"></div><div class="thumbs"></div><a href="frog_${v}/pose_comparison.png" target="_blank">姿勢對照圖</a> · <a href="frog_${v}/keypose_sheet.png" target="_blank">透明六格圖</a>`;
+ cards.append(card);
+ for(let i=0;i<6;i++){const letter=String.fromCharCode(65+i),b=document.createElement('button'); b.innerHTML=`<img src="frog_${v}/keyposes/pose_${letter}.png" alt="${v} Pose ${letter}">Pose ${letter}`;b.onclick=()=>{stop();show(i)};card.querySelector('.thumbs').append(b)}
+}
+let index=0,playing=false,last=0;
+function show(i){index=(i+6)%6;document.querySelector('#pose').textContent='Pose '+String.fromCharCode(65+index);document.querySelector('#scrub').value=index;for(const v of ['A','B'])document.querySelector('#frog'+v).src=`frog_${v}/keyposes/pose_${String.fromCharCode(65+index)}.png`;document.querySelectorAll('.thumbs').forEach(row=>[...row.children].forEach((b,j)=>b.classList.toggle('active',j===index)))}
+function stop(){playing=false;document.querySelector('#play').textContent='播放關鍵姿勢'}
+document.querySelector('#play').onclick=()=>{playing=!playing;last=performance.now();document.querySelector('#play').textContent=playing?'暫停':'播放關鍵姿勢'};
+document.querySelector('#previous').onclick=()=>{stop();show(index-1)};document.querySelector('#next').onclick=()=>{stop();show(index+1)};
+document.querySelector('#scrub').oninput=e=>{stop();show(+e.target.value)};
+document.querySelector('#checker').onchange=e=>document.querySelectorAll('.stage').forEach(s=>s.classList.toggle('checker',e.target.checked));
+function tick(time){if(playing&&time-last>=2000/6/+document.querySelector('#speed').value){show(index+1);last=time}requestAnimationFrame(tick)}show(0);requestAnimationFrame(tick);
+</script></html>

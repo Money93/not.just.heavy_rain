@@ -1,0 +1,30 @@
+{
+  "path": "C:\\Users\\USER\\Documents\\GitHub\\not.just.heavy\\參考圖\\幾何感黑色青蛙剪影.png",
+  "sha256": "7d49a769000e885ae5756325d4d1dca05179f4665c24619ca959079aafd6f690",
+  "mode": "RGBA",
+  "size": [
+    1278,
+    1230
+  ],
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "bbox": [
+    54,
+    22,
+    1244,
+    1200
+  ],
+  "components": 1,
+  "visible_rgb_min": [
+    0,
+    0,
+    0
+  ],
+  "visible_rgb_max": [
+    13,
+    13,
+    13
+  ]
+}

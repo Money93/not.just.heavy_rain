@@ -1,0 +1,236 @@
+{
+  "stage": 1,
+  "duration_seconds": 2,
+  "fps": 12,
+  "supported_fps": [
+    12,
+    16,
+    24
+  ],
+  "gains": {
+    "front": 1,
+    "rear": 1,
+    "body": 1,
+    "rotation": 1
+  },
+  "preview_speed": 1,
+  "interpolation_plan": "Periodic cubic interpolation of six nonuniform poses; no length scaling. Apply limb delays with baseline subtraction to preserve Pose A.",
+  "poses": [
+    {
+      "name": "Pose A",
+      "time": 0,
+      "body_deg": 0,
+      "rotation_deg": 0,
+      "offset_px": [
+        0,
+        0
+      ],
+      "limbs": [
+        {
+          "root_deg": 0,
+          "joint_deg": 0.0,
+          "extension": 0,
+          "time_offset_seconds": 0
+        },
+        {
+          "root_deg": 0,
+          "joint_deg": 0.0,
+          "extension": 0,
+          "time_offset_seconds": 0.055
+        },
+        {
+          "root_deg": 0,
+          "joint_deg": 0.0,
+          "extension": 0,
+          "time_offset_seconds": 0.025
+        },
+        {
+          "root_deg": 0,
+          "joint_deg": 0.0,
+          "extension": 0,
+          "time_offset_seconds": 0.085
+        }
+      ]
+    },
+    {
+      "name": "Pose B",
+      "time": 0.14,
+      "body_deg": 2,
+      "rotation_deg": 2,
+      "offset_px": [
+        1,
+        -1
+      ],
+      "limbs": [
+        {
+          "root_deg": -2,
+          "joint_deg": -0.8,
+          "extension": 0.2,
+          "time_offset_seconds": 0
+        },
+        {
+          "root_deg": 3,
+          "joint_deg": 1.2000000000000002,
+          "extension": 0.2,
+          "time_offset_seconds": 0.055
+        },
+        {
+          "root_deg": 3,
+          "joint_deg": 1.2000000000000002,
+          "extension": 0.2,
+          "time_offset_seconds": 0.025
+        },
+        {
+          "root_deg": -2,
+          "joint_deg": -0.8,
+          "extension": 0.2,
+          "time_offset_seconds": 0.085
+        }
+      ]
+    },
+    {
+      "name": "Pose C",
+      "time": 0.34,
+      "body_deg": 4,
+      "rotation_deg": 5,
+      "offset_px": [
+        3,
+        0
+      ],
+      "limbs": [
+        {
+          "root_deg": -5,
+          "joint_deg": -2.0,
+          "extension": 0.45,
+          "time_offset_seconds": 0
+        },
+        {
+          "root_deg": 4,
+          "joint_deg": 1.6,
+          "extension": 0.45,
+          "time_offset_seconds": 0.055
+        },
+        {
+          "root_deg": 5,
+          "joint_deg": 2.0,
+          "extension": 0.45,
+          "time_offset_seconds": 0.025
+        },
+        {
+          "root_deg": -4,
+          "joint_deg": -1.6,
+          "extension": 0.45,
+          "time_offset_seconds": 0.085
+        }
+      ]
+    },
+    {
+      "name": "Pose D",
+      "time": 0.53,
+      "body_deg": 1,
+      "rotation_deg": 2,
+      "offset_px": [
+        1,
+        1
+      ],
+      "limbs": [
+        {
+          "root_deg": 2,
+          "joint_deg": 0.8,
+          "extension": 0.2,
+          "time_offset_seconds": 0
+        },
+        {
+          "root_deg": -2,
+          "joint_deg": -0.8,
+          "extension": 0.2,
+          "time_offset_seconds": 0.055
+        },
+        {
+          "root_deg": 1,
+          "joint_deg": 0.4,
+          "extension": 0.2,
+          "time_offset_seconds": 0.025
+        },
+        {
+          "root_deg": -2,
+          "joint_deg": -0.8,
+          "extension": 0.2,
+          "time_offset_seconds": 0.085
+        }
+      ]
+    },
+    {
+      "name": "Pose E",
+      "time": 0.73,
+      "body_deg": -3,
+      "rotation_deg": -2,
+      "offset_px": [
+        -2,
+        0
+      ],
+      "limbs": [
+        {
+          "root_deg": 3,
+          "joint_deg": 1.2000000000000002,
+          "extension": -0.1,
+          "time_offset_seconds": 0
+        },
+        {
+          "root_deg": -3,
+          "joint_deg": -1.2000000000000002,
+          "extension": -0.1,
+          "time_offset_seconds": 0.055
+        },
+        {
+          "root_deg": -3,
+          "joint_deg": -1.2000000000000002,
+          "extension": -0.1,
+          "time_offset_seconds": 0.025
+        },
+        {
+          "root_deg": 2,
+          "joint_deg": 0.8,
+          "extension": -0.1,
+          "time_offset_seconds": 0.085
+        }
+      ]
+    },
+    {
+      "name": "Pose F",
+      "time": 0.9,
+      "body_deg": -1,
+      "rotation_deg": -0.5,
+      "offset_px": [
+        -1,
+        0
+      ],
+      "limbs": [
+        {
+          "root_deg": 1,
+          "joint_deg": 0.4,
+          "extension": -0.05,
+          "time_offset_seconds": 0
+        },
+        {
+          "root_deg": -1,
+          "joint_deg": -0.4,
+          "extension": -0.05,
+          "time_offset_seconds": 0.055
+        },
+        {
+          "root_deg": -1,
+          "joint_deg": -0.4,
+          "extension": -0.05,
+          "time_offset_seconds": 0.025
+        },
+        {
+          "root_deg": 1,
+          "joint_deg": 0.4,
+          "extension": -0.05,
+          "time_offset_seconds": 0.085
+        }
+      ]
+    }
+  ]
+}

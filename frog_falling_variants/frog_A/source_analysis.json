@@ -1,0 +1,30 @@
+{
+  "path": "C:\\Users\\USER\\Documents\\GitHub\\not.just.heavy\\參考圖\\黑色青蛙躍動剪影.png",
+  "sha256": "c92b4d675e8bfb3cf48613cd0ef635bb8f4559794c9a29eb719faa12b04de7d3",
+  "mode": "RGBA",
+  "size": [
+    1254,
+    1254
+  ],
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "bbox": [
+    0,
+    65,
+    1224,
+    1217
+  ],
+  "components": 1,
+  "visible_rgb_min": [
+    0,
+    0,
+    0
+  ],
+  "visible_rgb_max": [
+    12,
+    12,
+    6
+  ]
+}
